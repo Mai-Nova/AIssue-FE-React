@@ -2,6 +2,8 @@
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
+import { removeAuthStorage } from '../utils/auth';
+
 // API 요청 함수
 async function apiRequest(endpoint, options = {}) {
   const token = localStorage.getItem('token');
@@ -19,13 +21,9 @@ async function apiRequest(endpoint, options = {}) {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
 
     if (!response.ok) {
-      // 401 에러 처리
+      // 401 에러 처리 - 중앙화된 함수 사용
       if (response.status === 401) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('username');
-        localStorage.removeItem('email');
-        localStorage.removeItem('avatarUrl');
+        removeAuthStorage();
         window.location.href = '/login';
         throw new Error('인증이 만료되었습니다. 다시 로그인해주세요.');
       }

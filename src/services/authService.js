@@ -64,16 +64,21 @@ export async function deleteGithubAccount(accessToken) {
   }
 }
 
-// 로그아웃 처리
-export async function logout() {
+// 로그아웃 - POST 방식으로 서버에 로그아웃 요청
+export const logout = async () => {
   try {
-    await fetch(`${API_BASE_URL}/auth/github/logout`, {
-      method: 'GET',
-      credentials: 'include',
+    await apiRequest('/auth/github/logout', {
+      method: 'POST',
     });
-    return { success: true };
+
+    return {
+      success: true,
+    };
   } catch (error) {
-    console.error('로그아웃 중 오류 발생:', error);
-    return { success: false };
+    console.error('로그아웃 처리 실패:', error);
+    // 네트워크 오류가 발생해도 로컬 정보는 제거되도록 성공으로 처리
+    return {
+      success: true,
+    };
   }
-}
+};
