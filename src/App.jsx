@@ -1,45 +1,52 @@
+import { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
-import DashboardPage from './pages/DashboardPage';
-import RepositoriesPage from './pages/RepositoriesPage';
-import RepositoryPage from './pages/RepositoryPage';
-import IssuePage from './pages/IssuePage';
-import IssuesPage from './pages/IssuesPage';
-import ProfilePage from './pages/ProfilePage';
-import SettingsPage from './pages/SettingsPage';
-import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
-import TermsOfServicePage from './pages/TermsOfServicePage';
-import CookiePolicyPage from './pages/CookiePolicyPage';
 import OAuthCallback from './pages/OAuthCallback';
-import PaymentCompletePage from './pages/PaymentCompletePage';
-import PaymentFailPage from './pages/PaymentFailPage';
 import { SidebarProvider } from './contexts/SidebarContext';
+import { isLoggedIn } from './utils/auth';
+import ProtectedRoutes from './routes/ProtectedRoutes';
 
 function App() {
+  const [loggedIn, setLoggedIn] = useState(isLoggedIn());
+  const [checked, setChecked] = useState(false);
+
+  useEffect(() => {
+    const checkLogin = () => setLoggedIn(isLoggedIn());
+    window.addEventListener('storage', checkLogin);
+    window.addEventListener('loginStateChanged', checkLogin);
+    setChecked(true);
+    return () => {
+      window.removeEventListener('storage', checkLogin);
+      window.removeEventListener('loginStateChanged', checkLogin);
+    };
+  }, []);
+
+  if (!checked) return null;
+
   return (
     <SidebarProvider>
       <div className="min-h-screen bg-background text-foreground">
         <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/repositories" element={<RepositoriesPage />} />
-          <Route path="/repository/:id" element={<RepositoryPage />} />
           <Route
-            path="/repository/:id/issue/:issueId"
-            element={<IssuePage />}
+            path="/"
+            element={
+              loggedIn ? <Navigate to="/dashboard" replace /> : <HomePage />
+            }
           />
-          <Route path="/issues" element={<IssuesPage />} />
-          <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/settings" element={<SettingsPage />} />
-          <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
-          <Route path="/terms-of-service" element={<TermsOfServicePage />} />
-          <Route path="/cookie-policy" element={<CookiePolicyPage />} />
+          <Route
+            path="/login"
+            element={
+              loggedIn ? <Navigate to="/dashboard" replace /> : <LoginPage />
+            }
+          />
           <Route path="/oauth/callback" element={<OAuthCallback />} />
-          <Route path="/payment/success" element={<PaymentCompletePage />} />
-          <Route path="/payment/fail" element={<PaymentFailPage />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route
+            path="*"
+            element={
+              loggedIn ? <ProtectedRoutes /> : <Navigate to="/login" replace />
+            }
+          />
         </Routes>
       </div>
     </SidebarProvider>

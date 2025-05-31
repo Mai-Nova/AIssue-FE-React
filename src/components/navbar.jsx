@@ -11,11 +11,13 @@ import {
 } from './ui/dropdown-menu';
 import { removeAuthStorage } from '../utils/auth';
 import { logout } from '../services/authService';
+import { Dialog, DialogContent, DialogHeader, DialogFooter } from './ui/dialog';
 
 export default function Navbar({ scrollToTop, scrollToSection }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [open, setOpen] = useState(false);
 
   const token = localStorage.getItem('token');
   const username = localStorage.getItem('username');
@@ -83,9 +85,9 @@ export default function Navbar({ scrollToTop, scrollToSection }) {
 
   // 로그아웃 처리 함수
   const handleLogout = async () => {
-    removeAuthStorage();
     await logout();
-    navigate('/');
+    setOpen(false);
+    // 이후 리다이렉트 등 처리
   };
 
   const isHomePage = location.pathname === '/';
@@ -188,10 +190,10 @@ export default function Navbar({ scrollToTop, scrollToSection }) {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={handleLogout}
+                    onClick={() => setOpen(true)}
                     className="flex items-center gap-2 cursor-pointer text-red-600 focus:text-red-600"
                   >
-                    <LogOut className="w-4 h-4" />
+                    <User className="w-4 h-4" />
                     로그아웃
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -255,10 +257,10 @@ export default function Navbar({ scrollToTop, scrollToSection }) {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  onClick={handleLogout}
+                  onClick={() => setOpen(true)}
                   className="flex items-center gap-2 cursor-pointer text-red-600 focus:text-red-600"
                 >
-                  <LogOut className="w-4 h-4" />
+                  <User className="w-4 h-4" />
                   로그아웃
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -300,6 +302,22 @@ export default function Navbar({ scrollToTop, scrollToSection }) {
           </div>
         </div>
       )}
+
+      {/* 로그아웃 확인 모달 */}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>로그아웃</DialogHeader>
+          <div className="py-2">
+            로그아웃 시, 이 서비스에서만 로그아웃되며
+            GitHub 계정 연동은 유지됩니다.
+            계속 진행하시겠습니까?
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>취소</Button>
+            <Button onClick={handleLogout}>로그아웃</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </header>
   );
 }

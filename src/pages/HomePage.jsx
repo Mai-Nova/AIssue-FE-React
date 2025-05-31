@@ -43,7 +43,7 @@ export default function HomePage() {
     const username = localStorage.getItem('username');
     
     if (!token || !username || username.trim() === '') {
-      alert('Pro 플랜은 로그인 후 이용 가능합니다.');
+      alert('Pro 플랜은 로그인 후 결제하면 이용하실 수 있습니다.');
       navigate('/login');
       return;
     }

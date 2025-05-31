@@ -9,3 +9,7 @@ export function removeAuthStorage() {
   ];
   itemsToRemove.forEach((item) => localStorage.removeItem(item));
 }
+
+export function isLoggedIn() {
+  return !!localStorage.getItem('token');
+}

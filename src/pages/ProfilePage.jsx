@@ -32,6 +32,12 @@ import { logout } from '../services/authService';
 import useTabQuery from '../hooks/use-tabquery';
 import { formatKoreanDate, getRemainDetail } from '../utils/dateHelpers';
 import { fetchUserAndPlan } from '../services/userService';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+} from '../components/ui/dialog';
 
 export default function ProfilePage() {
   const [currentPlan, setCurrentPlan] = useState('loading');
@@ -44,6 +50,7 @@ export default function ProfilePage() {
   const [tabValue, setTabValue] = useTabQuery('account');
   const [createdAt, setCreatedAt] = useState('');
   const [updatedAt, setUpdatedAt] = useState('');
+  const [open, setOpen] = useState(false); // 로그아웃 다이얼로그 열림 상태
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -116,9 +123,7 @@ export default function ProfilePage() {
   };
 
   const handleLogout = async () => {
-    removeAuthStorage();
     await logout();
-    navigate('/');
   };
 
   // 구독 취소
@@ -210,7 +215,7 @@ export default function ProfilePage() {
                           readOnly
                           className="flex-1 bg-transparent border-none outline-none focus:ring-0 focus:ring-offset-0 p-0 m-0 rounded-r-none"
                           tabIndex={-1}
-                          // Input 컴포넌트 대신 input 태그 직접 사용 (불필요한 ring 제거)
+                        // Input 컴포넌트 대신 input 태그 직접 사용 (불필요한 ring 제거)
                         />
                         {/* username과 아이콘 사이 세로 구분선 */}
                         <div className="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-2 self-center" />
@@ -249,7 +254,7 @@ export default function ProfilePage() {
                       <Button
                         variant="outline"
                         className="gap-1"
-                        onClick={handleLogout}
+                        onClick={() => setOpen(true)} // 다이얼로그 열기
                       >
                         <LogOut className="w-4 h-4" />
                         로그아웃
@@ -556,6 +561,22 @@ export default function ProfilePage() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* 로그아웃 다이얼로그 */}
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>로그아웃</DialogHeader>
+          <div className="py-2">
+            로그아웃 시, 이 서비스에서만 로그아웃되며
+            GitHub 계정 연동은 유지됩니다.
+            계속 진행하시겠습니까?
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>취소</Button>
+            <Button onClick={handleLogout}>로그아웃</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }

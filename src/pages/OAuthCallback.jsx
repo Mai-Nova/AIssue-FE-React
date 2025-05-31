@@ -13,6 +13,7 @@ export default function OAuthCallback() {
     if (code) {
       fetch(`${API_BASE_URL}/auth/github/callback`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code }),
       })
@@ -25,15 +26,12 @@ export default function OAuthCallback() {
         })
         .then((data) => {
           if (data.token) {
-            // 서비스 인증용 JWT
             localStorage.setItem('token', data.token);
-            // GitHub API 호출용 accessToken (필요하다면)
-            if (data.githubAccessToken)
-              localStorage.setItem('githubAccessToken', data.githubAccessToken);
+            if (data.githubAccessToken) localStorage.setItem('githubAccessToken', data.githubAccessToken);
             if (data.username) localStorage.setItem('username', data.username);
             if (data.email) localStorage.setItem('email', data.email);
             if (data.avatarUrl) localStorage.setItem('avatarUrl', data.avatarUrl);
-            navigate('/profile?tab=subscription', { replace: true });
+            window.location.replace('/profile?tab=subscription');
           } else {
             navigate('/login', { replace: true });
           }

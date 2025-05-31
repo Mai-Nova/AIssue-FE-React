@@ -19,6 +19,7 @@ import {
   unlinkGithubAccount,
   deleteGithubAccount,
 } from '../services/authService';
+import { Dialog, DialogContent, DialogHeader, DialogFooter } from '../components/ui/dialog';
 
 function useAuthTokens() {
   return {
@@ -30,6 +31,7 @@ function useAuthTokens() {
 function GithubUnlinkButton() {
   const navigate = useNavigate();
   const { token, accessToken } = useAuthTokens();
+  const [open, setOpen] = useState(false);
 
   const handleUnlink = useCallback(async () => {
     if (!token) {
@@ -38,7 +40,7 @@ function GithubUnlinkButton() {
       return;
     }
 
-    const result = await unlinkGithubAccount(accessToken);
+    const result = await unlinkGithubAccount();
 
     if (!result.success) {
       alert('연동 해제 실패: ' + result.message);
@@ -50,30 +52,46 @@ function GithubUnlinkButton() {
   }, [token, accessToken, navigate]);
 
   return (
-    <Button variant="destructive" onClick={handleUnlink}>
-      연동 해제
-    </Button>
+    <>
+      <Button variant="destructive" onClick={() => setOpen(true)}>
+        연동 해제
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>GitHub 연동 해제</DialogHeader>
+          <div className="py-2">
+            연동 해제 시, 이 서비스에서 GitHub 계정 연결이 완전히 끊어집니다.
+            연동 해제 후에는 다시 연결해야 서비스를 이용할 수 있습니다.
+            정말로 연동을 해제하시겠습니까?
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>
+              취소
+            </Button>
+            <Button variant="destructive" onClick={handleUnlink}>
+              연동 해제
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
+// 계정 데이터 삭제 모달 버튼
 function AccountDeleteButton() {
   const navigate = useNavigate();
   const { token, accessToken } = useAuthTokens();
+  const [open, setOpen] = useState(false);
 
   const handleDelete = useCallback(async () => {
-    if (
-      !window.confirm(
-        '정말로 계정 데이터를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.'
-      )
-    )
-      return;
     if (!token) {
       alert('로그인 정보가 없습니다. 다시 로그인해 주세요.');
       navigate('/login');
       return;
     }
 
-    const result = await deleteGithubAccount(accessToken);
+    const result = await deleteGithubAccount();
 
     if (!result.success) {
       alert('계정 삭제 실패: ' + result.message);
@@ -85,13 +103,34 @@ function AccountDeleteButton() {
   }, [token, accessToken, navigate]);
 
   return (
-    <Button
-      variant="destructive"
-      className="w-full justify-center"
-      onClick={handleDelete}
-    >
-      계정 데이터 삭제
-    </Button>
+    <>
+      <Button
+        variant="destructive"
+        className="w-full justify-center"
+        onClick={() => setOpen(true)}
+      >
+        계정 데이터 삭제
+      </Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>계정 데이터 삭제</DialogHeader>
+          <div className="py-2">
+            계정 데이터를 삭제하면 모든 분석 결과, 설정 및 개인 정보가
+            영구적으로 제거됩니다.
+            이 작업은 되돌릴 수 없습니다.
+            정말로 계정 데이터를 삭제하시겠습니까?
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>
+              취소
+            </Button>
+            <Button variant="destructive" onClick={handleDelete}>
+              삭제
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
@@ -224,7 +263,9 @@ export default function SettingsPage() {
             <div className="pt-2">
               <p className="text-sm text-muted-foreground mb-4">
                 계정 데이터를 삭제하면 모든 분석 결과, 설정 및 개인 정보가
-                영구적으로 제거됩니다. 이 작업은 되돌릴 수 없습니다.
+                영구적으로 제거됩니다.
+                이 작업은 되돌릴 수 없습니다.
+                정말로 계정 데이터를 삭제하시겠습니까?
               </p>
               <AccountDeleteButton />
             </div>
