@@ -59,7 +59,9 @@ export const Button = React.forwardRef(
         )}
         ref={ref}
         {...props}
-      />
+      >
+        {props.children}
+      </Comp>
     );
   }
 );

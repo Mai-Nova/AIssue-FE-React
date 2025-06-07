@@ -19,15 +19,9 @@ import { Progress } from '../components/ui/progress';
 import { Badge } from '../components/ui/badge';
 import { AlertCircle, Clock, Search, CheckCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '../components/ui/alert';
-import DashboardLayout from '../components/dashboard-layout';
-import {
-  analyzeRepository,
-  getAnalyzingRepositories,
-  getRecentlyAnalyzedRepositories,
-  getAnalysisStatus,
-  updateRepositoryLastViewed,
-} from '../services/repositoryService';
 import { NotificationContext } from '../contexts/notificationContext';
+import DashboardLayout from '../components/dashboard-layout';
+import repositoryService from '../services/repositoryService';
 
 export default function DashboardPage() {
   const [repoUrl, setRepoUrl] = useState('');
@@ -58,7 +52,7 @@ export default function DashboardPage() {
     let failedRepoMessages = [];
 
     for (const repo of analyzingRepositories) {
-      const statusResult = await getAnalysisStatus(repo.id);
+      const statusResult = await repositoryService.getAnalysisStatus(repo.id);
 
       if (statusResult.success) {
         const updatedRepo = {
@@ -180,8 +174,8 @@ export default function DashboardPage() {
     setLoading(true);
     try {
       const [analyzingResult, recentResult] = await Promise.all([
-        getAnalyzingRepositories(),
-        getRecentlyAnalyzedRepositories(),
+        repositoryService.getAnalyzingRepositories(),
+        repositoryService.getRecentlyAnalyzedRepositories(),
       ]);
       if (analyzingResult.success) {
         setAnalyzingRepositories(analyzingResult.data);
@@ -224,7 +218,7 @@ export default function DashboardPage() {
     setIsAnalyzing(true);
 
     try {
-      const result = await analyzeRepository(repoUrl.trim());
+      const result = await repositoryService.analyzeRepository(repoUrl.trim());
 
       if (result.success) {
         setRepoUrl('');
@@ -362,7 +356,7 @@ export default function DashboardPage() {
   const handleRepositoryClick = async (repo) => {
     try {
       // 마지막 조회 시간 업데이트
-      await updateRepositoryLastViewed(repo.id);
+      await repositoryService.updateRepositoryLastViewed(repo.id);
 
       // 로컬 상태에서 해당 저장소를 새로운 저장소 목록에서 제거
       setNewRepositories((prev) => prev.filter((r) => r.id !== repo.id));

@@ -1,28 +1,21 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '../components/ui/card';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
 import { Github } from 'lucide-react';
 import Navbar from '../components/navbar';
 import Footer from '../components/footer';
-import { removeAuthStorage } from '../utils/auth';
-import { API_BASE_URL } from '../services/api.js';
+import authUtils from '../utils/auth';
+import api from '../services/api.js';
 
 export default function LoginPage() {
   const [isLoading] = useState(false);
 
   const handleGithubLogin = () => {
     // 기존 토큰/정보 삭제
-    removeAuthStorage();
+    authUtils.removeAuthStorage();
     // 실제 GitHub OAuth 인증 시작
-    window.location.href = `${API_BASE_URL}/auth/github/login`;
+    window.location.href = `${api.API_BASE_URL}/auth/github/login`;
   };
 
   return (

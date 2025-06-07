@@ -1,16 +1,16 @@
-import { apiRequest } from './api.js';
-import { handleError } from './errorHandler.js';
+import api from './api.js';
+import errorHandler from './errorHandler.js';
 
-// handleError 확장: 기본 data 값도 받을 수 있도록 수정
+// 저장소 관련 에러 핸들링 공통 함수
 function handleRepoError(error, defaultMsg, defaultData = []) {
-  const result = handleError(error, defaultMsg);
+  const result = errorHandler.handleError(error, defaultMsg);
   return { ...result, data: defaultData };
 }
 
-// 사용자 트래킹 저장소 목록 조회
-export async function getUserRepositories() {
+// 내 저장소 목록 조회
+async function getUserRepositories() {
   try {
-    const response = await apiRequest('/repositories/tracked');
+    const response = await api.apiRequest('/repositories/tracked');
     return {
       success: true,
       data: response.repositories || [],
@@ -22,9 +22,9 @@ export async function getUserRepositories() {
 }
 
 // 저장소 검색
-export async function searchRepositories(query) {
+async function searchRepositories(query) {
   try {
-    const response = await apiRequest(
+    const response = await api.apiRequest(
       `/repositories/search?query=${encodeURIComponent(query)}`
     );
     return {
@@ -38,9 +38,9 @@ export async function searchRepositories(query) {
 }
 
 // 저장소 트래킹 추가
-export async function addRepositoryToTracking(githubRepoId) {
+async function addRepositoryToTracking(githubRepoId) {
   try {
-    const response = await apiRequest('/repositories/tracked', {
+    const response = await api.apiRequest('/repositories/tracked', {
       method: 'POST',
       body: JSON.stringify({ githubRepoId }),
     });
@@ -55,9 +55,9 @@ export async function addRepositoryToTracking(githubRepoId) {
 }
 
 // 저장소 트래킹 삭제
-export async function removeRepositoryFromTracking(githubRepoId) {
+async function removeRepositoryFromTracking(githubRepoId) {
   try {
-    const response = await apiRequest(
+    const response = await api.apiRequest(
       `/repositories/tracked?githubRepoId=${githubRepoId}`,
       { method: 'DELETE' }
     );
@@ -71,12 +71,10 @@ export async function removeRepositoryFromTracking(githubRepoId) {
   }
 }
 
-// ===== 새로 추가: 저장소 분석 관련 API =====
-
-// 저장소 분석 시작
-export async function analyzeRepository(repoUrl) {
+// 저장소 분석 요청
+async function analyzeRepository(repoUrl) {
   try {
-    const response = await apiRequest('/repositories/analyze', {
+    const response = await api.apiRequest('/repositories/analyze', {
       method: 'POST',
       body: JSON.stringify({ repoUrl }),
     });
@@ -89,7 +87,6 @@ export async function analyzeRepository(repoUrl) {
   } catch (error) {
     console.error('저장소 분석 시작 오류:', error);
 
-    // 백엔드에서 전달된 오류 정보 추출
     let errorType = 'UNKNOWN_ERROR';
     let errorMessage = error.message || '저장소 분석 시작에 실패했습니다.';
 
@@ -108,9 +105,9 @@ export async function analyzeRepository(repoUrl) {
 }
 
 // 저장소 분석 상태 조회
-export async function getAnalysisStatus(repositoryId) {
+async function getAnalysisStatus(repositoryId) {
   try {
-    const response = await apiRequest(`/repositories/${repositoryId}/status`);
+    const response = await api.apiRequest(`/repositories/${repositoryId}/status`);
     return {
       success: true,
       data: response.data || {},
@@ -119,7 +116,6 @@ export async function getAnalysisStatus(repositoryId) {
   } catch (error) {
     console.error('분석 상태 조회 오류:', error);
 
-    // 백엔드에서 전달된 오류 정보 추출
     let errorType = 'UNKNOWN_ERROR';
     let errorMessage = error.message || '분석 상태 조회에 실패했습니다.';
 
@@ -138,9 +134,9 @@ export async function getAnalysisStatus(repositoryId) {
 }
 
 // 분석 중인 저장소 목록 조회
-export async function getAnalyzingRepositories() {
+async function getAnalyzingRepositories() {
   try {
-    const response = await apiRequest('/repositories/analyzing');
+    const response = await api.apiRequest('/repositories/analyzing');
     return {
       success: true,
       data: response.repositories || [],
@@ -156,10 +152,10 @@ export async function getAnalyzingRepositories() {
   }
 }
 
-// 최근 분석 완료된 저장소 목록 조회
-export async function getRecentlyAnalyzedRepositories() {
+// 최근 분석 완료 저장소 목록 조회
+async function getRecentlyAnalyzedRepositories() {
   try {
-    const response = await apiRequest('/repositories/recently-analyzed');
+    const response = await api.apiRequest('/repositories/recently-analyzed');
     return {
       success: true,
       data: response.repositories || [],
@@ -176,9 +172,9 @@ export async function getRecentlyAnalyzedRepositories() {
 }
 
 // 저장소 상세 정보 조회
-export async function getRepositoryDetails(repoId) {
+async function getRepositoryDetails(repoId) {
   try {
-    const response = await apiRequest(`/repositories/${repoId}/details`);
+    const response = await api.apiRequest(`/repositories/${repoId}/details`);
     return {
       success: true,
       data: response.data || {},
@@ -194,10 +190,10 @@ export async function getRepositoryDetails(repoId) {
   }
 }
 
-// 저장소 조회 시 마지막 조회 시간 업데이트
-export async function updateRepositoryLastViewed(repoId) {
+// 저장소 마지막 조회 시간 업데이트
+async function updateRepositoryLastViewed(repoId) {
   try {
-    const response = await apiRequest(`/repositories/${repoId}/viewed`, {
+    const response = await api.apiRequest(`/repositories/${repoId}/viewed`, {
       method: 'PATCH',
     });
     return {
@@ -214,9 +210,9 @@ export async function updateRepositoryLastViewed(repoId) {
 }
 
 // 저장소 언어 정보 조회
-export async function getRepositoryLanguages(repoId) {
+async function getRepositoryLanguages(repoId) {
   try {
-    const response = await apiRequest(`/repositories/${repoId}/languages`);
+    const response = await api.apiRequest(`/repositories/${repoId}/languages`);
     return {
       success: true,
       data: response.data || [],
@@ -232,10 +228,10 @@ export async function getRepositoryLanguages(repoId) {
   }
 }
 
-// 즐겨찾기 상태 업데이트
-export async function updateFavoriteStatus(repoId, isFavorite) {
+// 저장소 즐겨찾기 상태 업데이트
+async function updateFavoriteStatus(repoId, isFavorite) {
   try {
-    const response = await apiRequest(`/repositories/${repoId}/favorite`, {
+    const response = await api.apiRequest(`/repositories/${repoId}/favorite`, {
       method: 'PATCH',
       body: JSON.stringify({ isFavorite }),
     });
@@ -252,3 +248,18 @@ export async function updateFavoriteStatus(repoId, isFavorite) {
     };
   }
 }
+
+export default {
+  getUserRepositories,
+  searchRepositories,
+  addRepositoryToTracking,
+  removeRepositoryFromTracking,
+  analyzeRepository,
+  getAnalysisStatus,
+  getAnalyzingRepositories,
+  getRecentlyAnalyzedRepositories,
+  getRepositoryDetails,
+  updateRepositoryLastViewed,
+  getRepositoryLanguages,
+  updateFavoriteStatus,
+};

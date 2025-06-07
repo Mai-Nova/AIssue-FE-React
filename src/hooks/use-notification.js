@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { sendNotification } from '../services/notificationService';
+import notificationService from '../services/notificationService';
 
 export function useNotification() {
   const [isConnected, setIsConnected] = useState(false);
@@ -43,16 +43,12 @@ export function useNotification() {
       es.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          const updatedStatus = localStorage.getItem(
-            NOTIFICATION_PERMISSION_KEY
-          );
+          const updatedStatus = localStorage.getItem(NOTIFICATION_PERMISSION_KEY);
           if (
             updatedStatus === 'granted' &&
-            ['analysis_complete', 'analysis_failed', 'analysis_error'].includes(
-              data.type
-            )
+            ['analysis_complete', 'analysis_failed', 'analysis_error'].includes(data.type)
           ) {
-            sendNotification(data);
+            notificationService.sendNotification(data);
           }
         } catch (error) {
           console.error('알림 파싱 실패:', error);

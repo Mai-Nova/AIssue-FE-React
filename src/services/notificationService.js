@@ -1,4 +1,5 @@
-export async function permissionNotificationWindow() {
+// 브라우저 알림 권한 요청
+async function permissionNotificationWindow() {
   if (!('Notification' in window)) {
     console.log('이 브라우저는 알림을 지원하지 않습니다.');
     return false;
@@ -13,7 +14,8 @@ export async function permissionNotificationWindow() {
   return false;
 }
 
-export function sendNotification(data) {
+// 브라우저 알림 전송
+function sendNotification(data) {
   try {
     // 데이터 검증
     if (!data || !data.type) {
@@ -36,12 +38,12 @@ export function sendNotification(data) {
   }
 }
 
-// 기본 내보내기 - 동기/비동기 작업 분리
-export default async function notificationService(data) {
+// 알림 서비스 (권한 확인 후 알림 전송)
+async function notificationService(data) {
   try {
     const hasPermission = await permissionNotificationWindow();
     if (hasPermission) {
-      sendNotification(data); // 동기 함수로 호출
+      sendNotification(data);
     } else {
       console.log('알림 권한이 없어 알림을 보낼 수 없습니다.');
     }
@@ -49,3 +51,9 @@ export default async function notificationService(data) {
     console.error('알림 서비스 오류:', error);
   }
 }
+
+export default {
+  permissionNotificationWindow,
+  sendNotification,
+  notificationService,
+};

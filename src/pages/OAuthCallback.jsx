@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { processGithubCallback } from '../services/authService';
+import authUtils from '../utils/auth';
+import authService from '../services/authService';
 
 export default function OAuthCallback() {
   const navigate = useNavigate();
@@ -10,14 +11,18 @@ export default function OAuthCallback() {
     const code = params.get('code');
 
     if (code) {
-      processGithubCallback(code)
+      authService.processGithubCallback(code)
         .then(({ success, data }) => {
           if (success && data.accessToken) {
             localStorage.setItem('accessToken', data.accessToken);
-            if (data.githubAccessToken) localStorage.setItem('githubAccessToken', data.githubAccessToken);
-            if (data.username) localStorage.setItem('username', data.username);
-            if (data.email) localStorage.setItem('email', data.email);
-            if (data.avatarUrl) localStorage.setItem('avatarUrl', data.avatarUrl);
+
+            // accessToken에서 payload 추출
+            const payload = authUtils.parseJwt(data.accessToken);
+            if (payload?.userId) localStorage.setItem('userId', payload.userId);
+            if (payload?.username) localStorage.setItem('username', payload.username);
+            if (payload?.email) localStorage.setItem('email', payload.email);
+            if (payload?.avatarUrl) localStorage.setItem('avatarUrl', payload.avatarUrl);
+
             window.location.replace('/dashboard');
           } else {
             navigate('/login', { replace: true });

@@ -1,5 +1,5 @@
 // DB 저장소 데이터를 프론트엔드 형식으로 변환
-export function transformRepositoryData(dbRepo) {
+function transformRepositoryData(dbRepo) {
   return {
     id: dbRepo.repoId.toString(),
     name: dbRepo.fullName.split('/')[1] || dbRepo.fullName,
@@ -8,7 +8,7 @@ export function transformRepositoryData(dbRepo) {
     stars: dbRepo.star || 0,
     forks: dbRepo.fork || 0,
     issues: dbRepo.issueTotalCount || 0,
-    isPrivate: false, // DB에 없으므로 기본값
+    isPrivate: false,
     lastAnalyzed: formatDate(dbRepo.lastAnalyzedAt),
     isFavorite: dbRepo.isFavorite || false,
     isNew: isNewRepository(dbRepo.createdAt),
@@ -51,3 +51,9 @@ function isNewRepository(createdAt) {
 
   return diffInDays <= 7;
 }
+
+export default {
+  transformRepositoryData,
+  formatDate,
+  isNewRepository,
+};

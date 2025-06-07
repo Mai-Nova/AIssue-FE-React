@@ -1,13 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { Button } from '../components/ui/button';
-import {
-  ChevronDown,
-  Code,
-  MessageSquare,
-  BarChart,
-  Globe,
-} from 'lucide-react';
+import { ChevronDown, Code, MessageSquare, BarChart, Globe } from 'lucide-react';
 import Navbar from '../components/navbar';
 import Footer from '../components/footer';
 

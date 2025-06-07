@@ -1,46 +1,42 @@
-import { useState, useEffect, useContext } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useState, useEffect, useRef, useContext } from 'react';
+import { useParams, Link } from 'react-router-dom';
 import { Button } from '../components/ui/button';
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '../components/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Badge } from '../components/ui/badge';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '../components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Input } from '../components/ui/input';
-import {
-  AlertCircle,
-  ArrowLeft,
-  ExternalLink,
-  Github,
-  Star,
-  GitFork,
-  Clock,
-  Info,
-  Shield,
-  FileText,
-} from 'lucide-react';
-import DashboardLayout from '../components/dashboard-layout';
-import { getRepositoryDetails } from '../services/repositoryService';
-import { getLanguageColor } from '../utils/languageUtils';
+import { AlertCircle, ArrowLeft, ExternalLink, Github, Star, GitFork, Clock, Info, Shield, FileText, Trash2 } from 'lucide-react';
 import { NotificationContext } from '../contexts/notificationContext';
+import languageUtils from '../utils/languageUtils';
+import chatbotService from '../services/chatbotService';
+import DashboardLayout from '../components/dashboard-layout';
+import repositoryService from '../services/repositoryService';
+
+const GUIDE_MESSAGE = {
+  senderType: 'Agent',
+  content: `안녕하세요! 저장소에 대해 어떤 것이든 물어보세요. 컨트리뷰션 방법, 코딩 컨벤션, PR 작성 방법 등에 대해 답변해 드릴 수 있습니다.`,
+};
 
 export default function RepositoryPage() {
   const { isConnected } = useContext(NotificationContext);
   const { id: repoId } = useParams();
+  const accessToken = localStorage.getItem('accessToken');
+  const userId = localStorage.getItem('userId');
+
   const [repo, setRepo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [activeTab, setActiveTab] = useState(() => localStorage.getItem('repoActiveTab') || 'overview');
 
-  // 페이지 로드 시 저장소 정보 가져오기
+  // 챗봇 상태
+  const [chatInput, setChatInput] = useState('');
+  const [chatMessages, setChatMessages] = useState([]);
+  const [chatError, setChatError] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
+  const [conversationId, setConversationId] = useState(null);
+  const chatEndRef = useRef(null);
+
+  // 저장소 정보 가져오기
   useEffect(() => {
     console.log(`알림 연결 상태: ${isConnected ? '연결됨' : '끊김'}`);
     const loadRepositoryData = async () => {
@@ -49,10 +45,9 @@ export default function RepositoryPage() {
         setLoading(false);
         return;
       }
-
       try {
         setLoading(true);
-        const result = await getRepositoryDetails(repoId);
+        const result = await repositoryService.getRepositoryDetails(repoId);
 
         if (result.success) {
           setRepo(result.data);
@@ -60,8 +55,7 @@ export default function RepositoryPage() {
         } else {
           setError(result.message || '저장소 정보를 불러올 수 없습니다.');
         }
-      } catch (err) {
-        console.error('저장소 정보 로드 오류:', err);
+      } catch {
         setError('저장소 정보를 불러오는 중 오류가 발생했습니다.');
       } finally {
         setLoading(false);
@@ -69,14 +63,110 @@ export default function RepositoryPage() {
     };
 
     loadRepositoryData();
-  }, [repoId]);
+  }, [repoId, isConnected]);
+
+  // 챗봇탭 클릭 시: conversation 조회만 시도(없으면 생성X)
+  useEffect(() => {
+    if (
+      activeTab === 'chatbot' &&
+      repo &&
+      userId &&
+      accessToken
+    ) {
+      const fetchConversation = async () => {
+        setChatLoading(true);
+        setChatError('');
+        try {
+          const result = await chatbotService.getConversation({ repoId, userId, accessToken });
+          if (result.success) {
+            setConversationId(result.conversationId);
+            setChatMessages(result.messages || []);
+          } else if (result.status === 401) {
+            window.location.replace('/login');
+          } else {
+            setChatError(result.message || '챗봇 대화 조회에 실패했습니다.');
+          }
+        } catch {
+          setChatError('챗봇 대화 조회 중 오류가 발생했습니다.');
+        }
+        setChatLoading(false);
+      };
+      fetchConversation();
+    }
+  }, [activeTab, repo, userId, accessToken, repoId]);
+
+  // 메시지 전송 시: 대화가 없으면 먼저 생성, 그 후 메시지 저장
+  const handleSendMessage = async () => {
+    if (!chatInput.trim()) return;
+    setChatLoading(true);
+
+    let conversationIdForSend = conversationId;
+
+    if (!conversationIdForSend) {
+      // 대화가 없으면 생성
+      try {
+        const createResult = await chatbotService.createConversation({ repoId, userId, accessToken });
+        if (createResult.success) {
+          conversationIdForSend = createResult.conversationId;
+          setConversationId(conversationIdForSend);
+          // 새로 만든 conversation의 메시지 목록을 불러옴 (대부분 빈 배열이지만, 혹시라도 있을 수 있음)
+          const fetchResult = await chatbotService.getConversation({ repoId, userId, accessToken });
+          if (fetchResult.success) {
+            setChatMessages(fetchResult.messages || []);
+          } else {
+            setChatMessages([]);
+          }
+        } else {
+          setChatError('챗봇 대화 생성에 실패했습니다.');
+          setChatLoading(false);
+          return;
+        }
+      } catch {
+        setChatError('챗봇 대화 생성 중 오류가 발생했습니다.');
+        setChatLoading(false);
+        return;
+      }
+    }
+
+    // 메시지 전송
+    const tempId = Date.now() + Math.random();
+    const newMsg = { senderType: 'User', content: chatInput.trim(), tempId };
+    setChatMessages(prev => [...prev, newMsg]);
+    setChatInput('');
+    try {
+      await chatbotService.saveChatMessage({
+        conversationId: conversationIdForSend,
+        senderType: 'User',
+        content: newMsg.content,
+        accessToken,
+      });
+    } catch {
+      setChatMessages(prev => prev.filter(msg => msg.tempId !== tempId));
+      setChatError('메시지 전송에 실패했습니다. 다시 시도해 주세요.');
+    }
+    setChatLoading(false);
+  };
+
+  // 엔터키 처리
+  const handleInputKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  // 메시지 추가 시 스크롤 아래로
+  useEffect(() => {
+    if (chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [chatMessages]);
 
   // 라이선스 정보 및 의무사항
   const licenseInfo = {
     MIT: {
       fullName: 'MIT License',
-      description:
-        '간단하고 관대한 라이선스로, 저작권 및 라이선스 고지만 필요합니다.',
+      description: '간단하고 관대한 라이선스로, 저작권 및 라이선스 고지만 필요합니다.',
       permissions: ['상업적 사용', '수정', '배포', '개인 사용'],
       conditions: ['라이선스 및 저작권 고지 포함'],
       limitations: ['책임 면제', '보증 없음'],
@@ -84,8 +174,7 @@ export default function RepositoryPage() {
     },
     'Apache-2.0': {
       fullName: 'Apache License 2.0',
-      description:
-        '특허권 부여와 함께 사용자에게 자유를 제공하는 라이선스입니다.',
+      description: '특허권 부여와 함께 사용자에게 자유를 제공하는 라이선스입니다.',
       permissions: ['상업적 사용', '수정', '배포', '특허권 사용', '개인 사용'],
       conditions: ['라이선스 및 저작권 고지 포함', '상태 변경 명시'],
       limitations: ['상표권 사용 금지', '책임 면제', '보증 없음'],
@@ -93,8 +182,7 @@ export default function RepositoryPage() {
     },
     'GPL-3.0': {
       fullName: 'GNU General Public License v3.0',
-      description:
-        '수정된 코드를 동일한 라이선스로 공개해야 하는 강력한 카피레프트 라이선스입니다.',
+      description: '수정된 코드를 동일한 라이선스로 공개해야 하는 강력한 카피레프트 라이선스입니다.',
       permissions: ['상업적 사용', '수정', '배포', '특허권 사용', '개인 사용'],
       conditions: [
         '소스 코드 공개',
@@ -107,8 +195,7 @@ export default function RepositoryPage() {
     },
     'BSD-3-Clause': {
       fullName: 'BSD 3-Clause License',
-      description:
-        '간단하고 관대한 라이선스로, 저작권 고지와 면책 조항이 필요합니다.',
+      description: '간단하고 관대한 라이선스로, 저작권 고지와 면책 조항이 필요합니다.',
       permissions: ['상업적 사용', '수정', '배포', '개인 사용'],
       conditions: ['라이선스 및 저작권 고지 포함'],
       limitations: ['책임 면제', '보증 없음'],
@@ -186,6 +273,28 @@ export default function RepositoryPage() {
     return new Date(dateString).toLocaleDateString('ko-KR');
   };
 
+  // 탭 변경 시 localStorage에 저장
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    localStorage.setItem('repoActiveTab', tab);
+  };
+
+  // 대화 초기화 함수
+  const handleResetConversation = async () => {
+    setChatLoading(true);
+    setChatError('');
+    try {
+      await chatbotService.deleteConversation({ repoId, userId, accessToken });
+      setConversationId(null);
+      setChatMessages([]);
+      setChatInput('');
+      // 대화탭에 진입하면 새 대화가 자동 생성됨
+    } catch {
+      setChatError('대화 초기화에 실패했습니다.');
+    }
+    setChatLoading(false);
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -235,7 +344,7 @@ export default function RepositoryPage() {
           </div>
         </div>
 
-        <Tabs defaultValue="overview">
+        <Tabs value={activeTab} onValueChange={handleTabChange}>
           <TabsList>
             <TabsTrigger value="overview">개요</TabsTrigger>
             <TabsTrigger value="issues">이슈 목록</TabsTrigger>
@@ -292,14 +401,13 @@ export default function RepositoryPage() {
                                     key={lang.languageName}
                                     className="h-full"
                                     style={{
-                                      backgroundColor: getLanguageColor(
+                                      backgroundColor: languageUtils.getLanguageColor(
                                         lang.languageName
                                       ),
                                       width: `${lang.percentage}%`,
                                     }}
-                                    title={`${
-                                      lang.languageName
-                                    }: ${lang.percentage.toFixed(1)}%`}
+                                    title={`${lang.languageName
+                                      }: ${lang.percentage.toFixed(1)}%`}
                                   />
                                 ))}
                               </div>
@@ -316,7 +424,7 @@ export default function RepositoryPage() {
                                     <div
                                       className="w-3 h-3 rounded-full"
                                       style={{
-                                        backgroundColor: getLanguageColor(
+                                        backgroundColor: languageUtils.getLanguageColor(
                                           lang.languageName
                                         ),
                                       }}
@@ -492,17 +600,17 @@ export default function RepositoryPage() {
                           repo.analysisStatus === 'completed'
                             ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-600'
                             : repo.analysisStatus === 'analyzing'
-                            ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-600'
-                            : 'bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600'
+                              ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-600'
+                              : 'bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600'
                         }
                       >
                         {repo.analysisStatus === 'completed'
                           ? '분석 완료'
                           : repo.analysisStatus === 'analyzing'
-                          ? '분석 중'
-                          : repo.analysisStatus === 'failed'
-                          ? '분석 실패'
-                          : '분석 전'}
+                            ? '분석 중'
+                            : repo.analysisStatus === 'failed'
+                              ? '분석 실패'
+                              : '분석 전'}
                       </Badge>
                     </div>
                   </CardContent>
@@ -523,35 +631,64 @@ export default function RepositoryPage() {
           {/* AI 챗봇 탭 */}
           <TabsContent value="chatbot" className="space-y-4">
             <Card>
-              <CardHeader>
-                <CardTitle>컨트리뷰션 가이드 AI 챗봇</CardTitle>
-                <CardDescription>
-                  저장소의 컨트리뷰션 문서를 학습한 AI 챗봇에게 질문하세요
-                </CardDescription>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div className="flex flex-col gap-3">
+                  <CardTitle>컨트리뷰션 가이드 AI 챗봇</CardTitle>
+                  <CardDescription>
+                    저장소의 컨트리뷰션 문서를 학습한 AI 챗봇에게 질문하세요
+                  </CardDescription>
+                </div>
+                <Button
+                  variant="destructive"
+                  className="flex items-center gap-2 px-3 py-2 text-sm"
+                  onClick={handleResetConversation}
+                  disabled={chatLoading}
+                  title="대화 초기화"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  <span>대화 초기화</span>
+                </Button>
               </CardHeader>
               <CardContent>
                 <div className="bg-muted p-4 rounded-lg mb-4 h-[400px] overflow-y-auto flex flex-col space-y-4 dark:bg-gray-800">
-                  <div className="bg-primary-foreground p-3 rounded-lg max-w-[80%] self-start dark:bg-gray-700">
-                    <p className="text-sm dark:text-gray-200">
-                      안녕하세요!{' '}
-                      {repo.fullName?.split('/')[1] || repo.fullName} 저장소에
-                      대해 어떤 것이든 물어보세요. 컨트리뷰션 방법, 코딩 컨벤션,
-                      PR 작성 방법 등에 대해 답변해 드릴 수 있습니다.
-                    </p>
+                  {/* 안내 메시지 항상 맨 위에 */}
+                  <div
+                    className="max-w-[80%] rounded-lg p-3 self-start bg-primary-foreground text-gray-900 dark:bg-gray-700 dark:text-gray-200 text-left"
+                  >
+                    <p className="text-sm">{GUIDE_MESSAGE.content}</p>
                   </div>
+                  {/* DB에서 불러온 메시지들 */}
+                  {chatMessages.map((msg, idx) => (
+                    <div
+                      key={msg.messageId || msg.tempId || idx}
+                      className={`
+      max-w-[80%] rounded-lg p-3
+      ${msg.senderType === 'User'
+        ? 'self-end bg-blue-100 text-blue-900 dark:bg-blue-800 dark:text-blue-100 text-right'
+        : 'self-start bg-primary-foreground text-gray-900 dark:bg-gray-700 dark:text-gray-200 text-left'}
+    `}
+                    >
+                      <p className="text-sm">{msg.content}</p>
+                    </div>
+                  ))}
+                  <div ref={chatEndRef} />
                 </div>
-
                 <div className="flex gap-2">
                   <Input
                     placeholder="질문을 입력하세요..."
                     className="flex-1"
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    onKeyDown={handleInputKeyDown}
+                    disabled={chatLoading}
                   />
-                  <Button>전송</Button>
+                  <Button onClick={handleSendMessage} disabled={chatLoading || !chatInput.trim()}>
+                    전송
+                  </Button>
                 </div>
-
-                <p className="text-xs text-muted-foreground mt-2 dark:text-gray-400">
-                  AI 챗봇 기능은 준비 중입니다.
-                </p>
+                {chatError && (
+                  <p className="text-xs text-red-500 mt-2">{chatError}</p>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

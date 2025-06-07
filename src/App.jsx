@@ -7,15 +7,15 @@ import TermsOfServicePage from './pages/TermsOfServicePage';
 import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import CookiePolicyPage from './pages/CookiePolicyPage';
 import { SidebarProvider } from './contexts/SidebarContext';
-import { isLoggedIn } from './utils/auth';
+import authUtils from './utils/auth';
 import ProtectedRoutes from './routes/ProtectedRoutes';
 
 function App() {
-  const [loggedIn, setLoggedIn] = useState(isLoggedIn());
+  const [loggedIn, setLoggedIn] = useState(authUtils.isLoggedIn());
   const [checked, setChecked] = useState(false);
 
   useEffect(() => {
-    const checkLogin = () => setLoggedIn(isLoggedIn());
+    const checkLogin = () => setLoggedIn(authUtils.isLoggedIn());
     window.addEventListener('storage', checkLogin);
     window.addEventListener('loginStateChanged', checkLogin);
     setChecked(true);

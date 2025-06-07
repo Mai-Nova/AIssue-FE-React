@@ -9,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
-import { logout } from '../services/authService';
+import authService from '../services/authService';
 import { Dialog, DialogContent, DialogHeader, DialogFooter } from './ui/dialog';
 import ModalBody from './ui/ModalBody';
 
@@ -88,7 +88,7 @@ export default function Navbar({ scrollToTop, scrollToSection, loggedIn }) {
   const handleLogout = async () => {
     if (logoutLoading) return; // 중복 방지
     setLogoutLoading(true);
-    await logout();
+    await authService.logout();
     window.location.replace('/');
   };
 

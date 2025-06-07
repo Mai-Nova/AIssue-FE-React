@@ -1,17 +1,18 @@
-import { apiRequest } from './api.js';
-import { handleError } from './errorHandler.js';
+import api from './api.js';
+import errorHandler from './errorHandler.js';
 
-export async function requestProPayment(orderId, successUrl, failUrl) {
+// 결제/플랜 상태 조회
+async function paymentStatus() {
   try {
-    const data = await apiRequest('/payment/request', {
-      method: 'POST',
-      body: JSON.stringify({ orderId, successUrl, failUrl }),
+    const data = await api.apiRequest('/payment/status', {
       credentials: 'include',
     });
     return { success: true, data };
   } catch (error) {
-    return handleError(error, 'Pro 결제 요청에 실패했습니다.');
+    return errorHandler.handleError(error, '결제 상태 조회에 실패했습니다.');
   }
 }
 
-// 구독 취소/재구독 등도 여기에 추가 (동일 패턴으로 작성)
+export default {
+  paymentStatus,
+};

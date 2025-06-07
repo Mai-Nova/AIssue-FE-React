@@ -9,8 +9,7 @@ import SettingsPage from '../pages/SettingsPage';
 import PrivacyPolicyPage from '../pages/PrivacyPolicyPage';
 import TermsOfServicePage from '../pages/TermsOfServicePage';
 import CookiePolicyPage from '../pages/CookiePolicyPage';
-import PaymentCompletePage from '../pages/PaymentCompletePage';
-import PaymentFailPage from '../pages/PaymentFailPage';
+import PaymentResultPage from '../pages/PaymentResultPage';
 import { useNotification } from '../hooks/use-notification';
 import { NotificationContext } from '../contexts/notificationContext';
 
@@ -29,8 +28,8 @@ export default function ProtectedRoutes() {
         <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
         <Route path="/terms-of-service" element={<TermsOfServicePage />} />
         <Route path="/cookie-policy" element={<CookiePolicyPage />} />
-        <Route path="/payment/success" element={<PaymentCompletePage />} />
-        <Route path="/payment/fail" element={<PaymentFailPage />} />
+        <Route path="/payment/success" element={<PaymentResultPage />} />
+        <Route path="/payment/fail" element={<PaymentResultPage />} />
         <Route
           path="*"
           element={<Navigate to="/profile?tab=subscription" replace />}
