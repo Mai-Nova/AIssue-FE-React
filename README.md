@@ -1,6 +1,6 @@
 # AIssue Frontend (React)
 
-AIssue는 GitHub 이슈를 AI로 분석하여 자동으로 해결책을 제안하는 시스템입니다. 
+AIssue는 GitHub 이슈를 AI로 분석하여 자동으로 해결책을 제안하는 시스템입니다.
 이 저장소는 React 기반의 프론트엔드 애플리케이션을 제공합니다.
 
 ## 🚀 실행 방법
